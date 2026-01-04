@@ -18,7 +18,7 @@ public class QuizService {
         return quizzes.stream().filter(Quiz::isPublic).toList();
     }
 
-    public java.util.List<Quiz> getQuizzesByUser(Long userId) {
+    public java.util.List<Quiz> getQuizzesByUser(String userId) {
         return quizzes.stream().filter(q -> q.getCreator().getId().equals(userId)).toList();
     }
 

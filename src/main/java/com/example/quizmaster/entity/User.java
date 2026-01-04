@@ -2,7 +2,7 @@ package com.example.quizmaster.entity;
 
 public class User {
 
-    private Long id;
+    private String id;
     private String email;
     private String password;
     private String firstName;
@@ -18,11 +18,11 @@ public class User {
         this.lastName = lastName;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

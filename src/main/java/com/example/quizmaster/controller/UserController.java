@@ -2,7 +2,10 @@ package com.example.quizmaster.controller;
 
 import com.example.quizmaster.dto.LoginRequest;
 import com.example.quizmaster.dto.LoginResponse;
+import com.example.quizmaster.dto.MessageResponse;
+import com.example.quizmaster.dto.SignUpRequest;
 import com.example.quizmaster.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,12 +24,12 @@ public class UserController {
 
     @PostMapping("/signin")
     public ResponseEntity<LoginResponse> signin(@RequestBody LoginRequest loginRequest) {
-        return ResponseEntity.ok(userService.login(loginRequest));
+        return ResponseEntity.status(HttpStatus.OK).body(userService.login(loginRequest));
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<com.example.quizmaster.dto.MessageResponse> signup(
-            @RequestBody com.example.quizmaster.dto.SignUpRequest signUpRequest) {
-        return ResponseEntity.ok(userService.register(signUpRequest));
+    public ResponseEntity<MessageResponse> signup(
+            @RequestBody SignUpRequest signUpRequest) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.register(signUpRequest));
     }
 }

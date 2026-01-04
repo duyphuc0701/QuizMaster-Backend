@@ -8,7 +8,7 @@ public class LoginResponse {
     private String accessToken;
 
     @JsonProperty("id")
-    private Long id;
+    private String id;
 
     @JsonProperty("first_name")
     private String firstName;
@@ -16,7 +16,7 @@ public class LoginResponse {
     @JsonProperty("last_name")
     private String lastName;
 
-    public LoginResponse(String accessToken, Long id, String firstName, String lastName) {
+    public LoginResponse(String accessToken, String id, String firstName, String lastName) {
         this.accessToken = accessToken;
         this.id = id;
         this.firstName = firstName;
@@ -31,11 +31,11 @@ public class LoginResponse {
         this.accessToken = accessToken;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/quizzes")
 public class QuizController {
@@ -18,12 +20,12 @@ public class QuizController {
     }
 
     @GetMapping("/public")
-    public ResponseEntity<java.util.List<Quiz>> getAllPublicQuizzes() {
+    public ResponseEntity<List<Quiz>> getAllPublicQuizzes() {
         return ResponseEntity.ok(quizService.getAllPublicQuizzes());
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<java.util.List<Quiz>> getQuizzesByUser(@PathVariable Long userId) {
+    public ResponseEntity<List<Quiz>> getQuizzesByUser(@PathVariable String userId) {
         return ResponseEntity.ok(quizService.getQuizzesByUser(userId));
     }
 }
