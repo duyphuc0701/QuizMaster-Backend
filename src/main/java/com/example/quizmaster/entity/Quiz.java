@@ -1,30 +1,14 @@
 package com.example.quizmaster.entity;
 
-import jakarta.persistence.*;
 import java.util.List;
 
-@Entity
-@Table(name = "quizzes")
 public class Quiz {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
     private String title;
-
-    @Column
     private String description;
-
-    @Column(name = "is_public", nullable = false)
     private boolean isPublic;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "creator_id", nullable = false)
     private User creator;
-
-    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions;
 
     public Quiz() {

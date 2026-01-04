@@ -4,10 +4,9 @@ import com.example.quizmaster.entity.Answer;
 import com.example.quizmaster.entity.Question;
 import com.example.quizmaster.entity.Quiz;
 import com.example.quizmaster.entity.User;
-import com.example.quizmaster.repository.QuizRepository;
-import com.example.quizmaster.repository.UserRepository;
+import com.example.quizmaster.service.QuizService;
+import com.example.quizmaster.service.UserService;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -16,28 +15,22 @@ import java.util.List;
 @Component
 public class DataSeeder implements CommandLineRunner {
 
-    private final UserRepository userRepository;
-    private final QuizRepository quizRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final UserService userService;
+    private final QuizService quizService;
 
-    public DataSeeder(UserRepository userRepository, QuizRepository quizRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.quizRepository = quizRepository;
-        this.passwordEncoder = passwordEncoder;
+    public DataSeeder(UserService userService, QuizService quizService) {
+        this.userService = userService;
+        this.quizService = quizService;
     }
 
     @Override
     public void run(String... args) throws Exception {
-        if (userRepository.count() > 0) {
-            return;
-        }
-
         // Create Users
-        User admin = new User("admin@example.com", passwordEncoder.encode("password"), "Admin", "User");
-        User user = new User("user@example.com", passwordEncoder.encode("password"), "Regular", "User");
+        User admin = new User("admin@example.com", "password", "Admin", "User");
+        User user = new User("user@example.com", "password", "Regular", "User");
 
-        userRepository.save(admin);
-        userRepository.save(user);
+        userService.saveUser(admin);
+        userService.saveUser(user);
 
         // Create Public Quiz
         Quiz publicQuiz = new Quiz("General Knowledge", "A random quiz about everything", true, admin);
@@ -60,7 +53,7 @@ public class DataSeeder implements CommandLineRunner {
         publicQuestions.add(q2);
 
         publicQuiz.setQuestions(publicQuestions);
-        quizRepository.save(publicQuiz);
+        quizService.saveQuiz(publicQuiz);
 
         // Create Private Quiz
         Quiz privateQuiz = new Quiz("Secret Quiz", "For authorized personnel only", false, user);
@@ -74,7 +67,7 @@ public class DataSeeder implements CommandLineRunner {
         privateQuestions.add(q3);
 
         privateQuiz.setQuestions(privateQuestions);
-        quizRepository.save(privateQuiz);
+        quizService.saveQuiz(privateQuiz);
 
         System.out.println("Data seeding completed!");
     }

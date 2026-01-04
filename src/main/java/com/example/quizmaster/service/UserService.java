@@ -3,55 +3,60 @@ package com.example.quizmaster.service;
 import com.example.quizmaster.dto.LoginRequest;
 import com.example.quizmaster.dto.LoginResponse;
 import com.example.quizmaster.entity.User;
-import com.example.quizmaster.repository.UserRepository;
-import com.example.quizmaster.security.JwtService;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.UUID;
 
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final static java.util.List<User> users = new java.util.ArrayList<>();
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
+    public UserService() {
     }
 
     public LoginResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = users.stream()
+                .filter(u -> u.getEmail().equals(request.getEmail()))
+                .findFirst()
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (!user.getPassword().equals(request.getPassword())) {
             throw new RuntimeException("Invalid credentials");
         }
 
-        String token = jwtService.generateToken(new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                new ArrayList<>()));
+        // Just return a dummy token since we are not using JWT anymore
+        String token = UUID.randomUUID().toString();
 
         return new LoginResponse(token, user.getId(), user.getFirstName(), user.getLastName());
     }
 
     public com.example.quizmaster.dto.MessageResponse register(com.example.quizmaster.dto.SignUpRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (users.stream().anyMatch(u -> u.getEmail().equals(request.getEmail()))) {
             throw new RuntimeException("Email already in use");
         }
 
         User user = new User();
+        user.setId((long) (users.size() + 1));
         user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        // Store plain text password
+        user.setPassword(request.getPassword());
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
 
-        userRepository.save(user);
+        users.add(user);
 
         return new com.example.quizmaster.dto.MessageResponse("User registered successfully");
+    }
+
+    public void saveUser(User user) {
+        if (user.getId() == null) {
+            user.setId((long) (users.size() + 1));
+        }
+        users.add(user);
+    }
+
+    public java.util.Optional<User> findByEmail(String email) {
+        return users.stream().filter(u -> u.getEmail().equals(email)).findFirst();
     }
 }

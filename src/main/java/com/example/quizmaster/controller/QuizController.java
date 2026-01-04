@@ -3,9 +3,6 @@ package com.example.quizmaster.controller;
 import com.example.quizmaster.entity.Quiz;
 import com.example.quizmaster.service.QuizService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,13 +18,12 @@ public class QuizController {
     }
 
     @GetMapping("/public")
-    public ResponseEntity<Page<Quiz>> getAllPublicQuizzes(@PageableDefault(size = 10) Pageable pageable) {
-        return ResponseEntity.ok(quizService.getAllPublicQuizzes(pageable));
+    public ResponseEntity<java.util.List<Quiz>> getAllPublicQuizzes() {
+        return ResponseEntity.ok(quizService.getAllPublicQuizzes());
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<Page<Quiz>> getQuizzesByUser(@PathVariable Long userId,
-            @PageableDefault(size = 10) Pageable pageable) {
-        return ResponseEntity.ok(quizService.getQuizzesByUser(userId, pageable));
+    public ResponseEntity<java.util.List<Quiz>> getQuizzesByUser(@PathVariable Long userId) {
+        return ResponseEntity.ok(quizService.getQuizzesByUser(userId));
     }
 }

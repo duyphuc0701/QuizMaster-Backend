@@ -1,23 +1,10 @@
 package com.example.quizmaster.entity;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "answers")
 public class Answer {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
     private Question question;
-
-    @Column(name = "is_correct", nullable = false)
     private boolean isCorrect;
-
-    @Column(nullable = false)
     private String text;
 
     public Answer() {
