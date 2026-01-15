@@ -1,9 +1,6 @@
 package com.example.quizmaster.controller;
 
-import com.example.quizmaster.dto.LoginRequest;
-import com.example.quizmaster.dto.LoginResponse;
-import com.example.quizmaster.dto.MessageResponse;
-import com.example.quizmaster.dto.SignUpRequest;
+import com.example.quizmaster.dto.AuthDto;
 import com.example.quizmaster.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,13 +30,13 @@ public class UserController {
     }
 
     @PostMapping("/auth/signin")
-    public ResponseEntity<LoginResponse> signin(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<AuthDto.LoginResponse> signin(@RequestBody AuthDto.LoginRequest loginRequest) {
         return ResponseEntity.status(HttpStatus.OK).body(userService.login(loginRequest));
     }
 
     @PostMapping("/auth/signup")
-    public ResponseEntity<MessageResponse> signup(
-            @RequestBody SignUpRequest signUpRequest) {
+    public ResponseEntity<AuthDto.MessageResponse> signup(
+            @RequestBody AuthDto.SignUpRequest signUpRequest) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.register(signUpRequest));
     }
 }

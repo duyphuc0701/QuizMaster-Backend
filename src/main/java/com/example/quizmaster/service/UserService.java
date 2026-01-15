@@ -1,9 +1,6 @@
 package com.example.quizmaster.service;
 
-import com.example.quizmaster.dto.LoginRequest;
-import com.example.quizmaster.dto.LoginResponse;
-import com.example.quizmaster.dto.MessageResponse;
-import com.example.quizmaster.dto.SignUpRequest;
+import com.example.quizmaster.dto.AuthDto;
 import com.example.quizmaster.exception.ApiException;
 import com.example.quizmaster.repository.UserRepository;
 
@@ -41,7 +38,7 @@ public class UserService {
     @Value("${keycloak.credentials.secret}")
     private String clientSecret;
 
-    public MessageResponse register(SignUpRequest request) {
+    public AuthDto.MessageResponse register(AuthDto.SignUpRequest request) {
         // 1. PREPARE KEYCLOAK USER OBJECT
         UserRepresentation kcUser = new UserRepresentation();
         kcUser.setEnabled(true);
@@ -84,7 +81,7 @@ public class UserService {
                 throw new RuntimeException("Local database error. Registration rolled back.");
             }
 
-            return new MessageResponse("User registered successfully");
+            return new AuthDto.MessageResponse("User registered successfully");
 
         } else if (response.getStatus() == 409) {
             throw new ApiException("User already exists", HttpStatus.CONFLICT);
@@ -93,7 +90,7 @@ public class UserService {
         }
     }
 
-    public LoginResponse login(LoginRequest request) {
+    public AuthDto.LoginResponse login(AuthDto.LoginRequest request) {
         try {
             // 1. Create a Keycloak instance specifically for this authentication attempt
             // We use the "PASSWORD" grant type here to exchange creds for a token
@@ -112,7 +109,7 @@ public class UserService {
             AccessTokenResponse tokenResponse = keycloakUser.tokenManager().getAccessToken();
 
             // 3. Map Keycloak response to your custom response
-            return new LoginResponse(
+            return new AuthDto.LoginResponse(
                     tokenResponse.getToken(),
                     tokenResponse.getRefreshToken(),
                     tokenResponse.getExpiresIn(),

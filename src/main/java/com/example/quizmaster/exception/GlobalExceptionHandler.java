@@ -1,6 +1,6 @@
 package com.example.quizmaster.exception;
 
-import com.example.quizmaster.dto.MessageResponse;
+import com.example.quizmaster.dto.AuthDto;
 
 import java.util.Map;
 
@@ -15,19 +15,19 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
-    public ResponseEntity<MessageResponse> handleApiException(ApiException ex) {
-        return new ResponseEntity<>(new MessageResponse(ex.getMessage()), ex.getStatus());
+    public ResponseEntity<AuthDto.MessageResponse> handleApiException(ApiException ex) {
+        return new ResponseEntity<>(new AuthDto.MessageResponse(ex.getMessage()), ex.getStatus());
     }
 
     @ExceptionHandler(WebClientResponseException.class)
-    public ResponseEntity<MessageResponse> handleWebClientException(WebClientResponseException ex) {
+    public ResponseEntity<AuthDto.MessageResponse> handleWebClientException(WebClientResponseException ex) {
         // Forward the status code from Keycloak (or other external services)
-        return new ResponseEntity<>(new MessageResponse(ex.getResponseBodyAsString()), ex.getStatusCode());
+        return new ResponseEntity<>(new AuthDto.MessageResponse(ex.getResponseBodyAsString()), ex.getStatusCode());
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<MessageResponse> handleGeneralException(Exception ex) {
-        return new ResponseEntity<>(new MessageResponse("An unexpected error occurred: " + ex.getMessage()),
+    public ResponseEntity<AuthDto.MessageResponse> handleGeneralException(Exception ex) {
+        return new ResponseEntity<>(new AuthDto.MessageResponse("An unexpected error occurred: " + ex.getMessage()),
                 HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

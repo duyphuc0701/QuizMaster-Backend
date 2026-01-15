@@ -2,6 +2,9 @@ package com.example.quizmaster.entity;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+
+import com.example.quizmaster.constants.AttemptStatus;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

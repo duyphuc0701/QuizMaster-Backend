@@ -1,4 +1,4 @@
-package com.example.quizmaster.entity;
+package com.example.quizmaster.constants;
 
 public enum AttemptStatus {
     IN_PROGRESS,

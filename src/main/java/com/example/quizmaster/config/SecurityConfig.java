@@ -19,6 +19,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/users/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/game-sessions/join").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/game-sessions/*/players").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/game-sessions/*/questions/*/answers").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/game-sessions/*/state").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/quizzes", "/api/quizzes/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())

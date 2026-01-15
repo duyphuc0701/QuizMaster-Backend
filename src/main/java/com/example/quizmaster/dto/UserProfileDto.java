@@ -14,7 +14,7 @@ public class UserProfileDto {
         this.lastName = lastName;
     }
 
-    // Getters and Setters (omitted for brevity)
+    // Getters and Setters
     public String getId() {
         return id;
     }
