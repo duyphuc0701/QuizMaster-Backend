@@ -1,16 +1,27 @@
 package com.example.quizmaster.entity;
 
-public class Answer {
+@jakarta.persistence.Entity
+@jakarta.persistence.Table(name = "options")
+public class Option {
 
+    @jakarta.persistence.Id
+    @jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private Long id;
+
+    @com.fasterxml.jackson.annotation.JsonBackReference
+    @jakarta.persistence.ManyToOne
+    @jakarta.persistence.JoinColumn(name = "question_id")
     private Question question;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("correct")
     private boolean isCorrect;
+
     private String text;
 
-    public Answer() {
+    public Option() {
     }
 
-    public Answer(Question question, boolean isCorrect, String text) {
+    public Option(Question question, boolean isCorrect, String text) {
         this.question = question;
         this.isCorrect = isCorrect;
         this.text = text;
@@ -32,6 +43,7 @@ public class Answer {
         this.question = question;
     }
 
+    @com.fasterxml.jackson.annotation.JsonProperty("correct")
     public boolean isCorrect() {
         return isCorrect;
     }

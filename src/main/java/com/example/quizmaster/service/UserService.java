@@ -4,145 +4,130 @@ import com.example.quizmaster.dto.LoginRequest;
 import com.example.quizmaster.dto.LoginResponse;
 import com.example.quizmaster.dto.MessageResponse;
 import com.example.quizmaster.dto.SignUpRequest;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.quizmaster.exception.ApiException;
+import com.example.quizmaster.repository.UserRepository;
 
+import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.OAuth2Constants;
+import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
 
+import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.core.Response;
 import java.util.Collections;
-import java.util.Base64;
 
 @Service
 public class UserService {
 
-    @Value("${keycloak.auth-server-url}")
-    private String authServerUrl;
+    @Autowired
+    private UserRepository userRepository; // Your local Postgres repo
+
+    @Autowired
+    private Keycloak keycloak; // Inject the Bean (see config below)
 
     @Value("${keycloak.realm}")
     private String realm;
-
+    @Value("${keycloak.auth-server-url}")
+    private String serverUrl;
     @Value("${keycloak.resource}")
     private String clientId;
-
     @Value("${keycloak.credentials.secret}")
     private String clientSecret;
 
-    private final WebClient webClient;
-    private final ObjectMapper objectMapper;
+    public MessageResponse register(SignUpRequest request) {
+        // 1. PREPARE KEYCLOAK USER OBJECT
+        UserRepresentation kcUser = new UserRepresentation();
+        kcUser.setEnabled(true);
+        kcUser.setUsername(request.getEmail());
+        kcUser.setEmail(request.getEmail());
+        kcUser.setFirstName(request.getFirstName());
+        kcUser.setLastName(request.getLastName());
+        kcUser.setEmailVerified(true);
 
-    public UserService(WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
-        this.webClient = webClientBuilder.build();
-        this.objectMapper = objectMapper;
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(request.getPassword());
+        credential.setTemporary(false);
+        kcUser.setCredentials(Collections.singletonList(credential));
+
+        // 2. CALL KEYCLOAK API (Writes to 'keycloak_db')
+        Response response = keycloak.realm(realm).users().create(kcUser);
+
+        if (response.getStatus() == 201) {
+            // 3. EXTRACT THE NEW ID (CRITICAL STEP)
+            // Keycloak returns the ID in the Location header, usually the last part of the
+            // path
+            String userId = CreatedResponseUtil.getCreatedId(response);
+
+            // 4. SAVE TO LOCAL DATABASE (Writes to 'quizmaster' db)
+            // This ensures your local DB has the ID to link with Quiz Results later
+            com.example.quizmaster.entity.User localUser = new com.example.quizmaster.entity.User();
+            localUser.setId(userId); // SYNC THE ID!
+            localUser.setEmail(request.getEmail());
+            localUser.setFirstName(request.getFirstName());
+            localUser.setLastName(request.getLastName());
+
+            try {
+                userRepository.save(localUser);
+            } catch (Exception e) {
+                // COMPENSATION LOGIC:
+                // If local save fails, you should delete the user from Keycloak
+                // to prevent "Ghost Users" (exists in Auth but not in App).
+                keycloak.realm(realm).users().get(userId).remove();
+                throw new RuntimeException("Local database error. Registration rolled back.");
+            }
+
+            return new MessageResponse("User registered successfully");
+
+        } else if (response.getStatus() == 409) {
+            throw new ApiException("User already exists", HttpStatus.CONFLICT);
+        } else {
+            throw new ApiException("Failed to register user", HttpStatus.valueOf(response.getStatus()));
+        }
     }
 
     public LoginResponse login(LoginRequest request) {
-        String tokenUrl = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
-
-        // Let WebClientResponseException propagate to GlobalExceptionHandler
-        String responseBody = webClient.post()
-                .uri(tokenUrl)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(BodyInserters.fromFormData("grant_type", "password")
-                        .with("client_id", clientId)
-                        .with("client_secret", clientSecret)
-                        .with("username", request.getEmail())
-                        .with("password", request.getPassword()))
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-
         try {
-            JsonNode response = objectMapper.readTree(responseBody);
+            // 1. Create a Keycloak instance specifically for this authentication attempt
+            // We use the "PASSWORD" grant type here to exchange creds for a token
+            Keycloak keycloakUser = KeycloakBuilder.builder()
+                    .serverUrl(serverUrl)
+                    .realm(realm)
+                    .clientId(clientId)
+                    .clientSecret(clientSecret) // Required if your client is 'Confidential'
+                    .grantType(OAuth2Constants.PASSWORD)
+                    .username(request.getEmail())
+                    .password(request.getPassword())
+                    .build();
 
-            String accessToken = response.get("access_token").asText();
+            // 2. Request the token
+            // access() or tokenManager().getAccessToken() triggers the HTTP call
+            AccessTokenResponse tokenResponse = keycloakUser.tokenManager().getAccessToken();
 
-            // Decode token to get user details
-            String[] chunks = accessToken.split("\\.");
-            String payload = new String(Base64.getUrlDecoder().decode(chunks[1]));
-            JsonNode payloadNode = objectMapper.readTree(payload);
+            // 3. Map Keycloak response to your custom response
+            return new LoginResponse(
+                    tokenResponse.getToken(),
+                    tokenResponse.getRefreshToken(),
+                    tokenResponse.getExpiresIn(),
+                    tokenResponse.getTokenType());
 
-            String userId = payloadNode.has("sub") ? payloadNode.get("sub").asText() : "";
-
-            String firstName = payloadNode.has("given_name") ? payloadNode.get("given_name").asText() : "";
-            String lastName = payloadNode.has("family_name") ? payloadNode.get("family_name").asText() : "";
-
-            return new LoginResponse(accessToken, userId, firstName, lastName);
+        } catch (NotAuthorizedException e) {
+            // 4. Handle Bad Credentials (401)
+            throw new com.example.quizmaster.exception.ApiException(
+                    "Invalid email or password",
+                    org.springframework.http.HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to process login response: " + e.getMessage());
+            // 5. Handle other errors (Keycloak down, timeouts, etc.)
+            throw new com.example.quizmaster.exception.ApiException(
+                    "Login failed: " + e.getMessage(),
+                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }
-
-    public MessageResponse register(SignUpRequest request) {
-        try (Keycloak keycloak = getKeycloakInstance()) {
-
-            UserRepresentation user = new UserRepresentation();
-            user.setEnabled(true);
-            user.setUsername(request.getEmail());
-            user.setEmail(request.getEmail());
-            user.setFirstName(request.getFirstName());
-            user.setLastName(request.getLastName());
-            user.setEmailVerified(true);
-
-            CredentialRepresentation credential = new CredentialRepresentation();
-            credential.setType(CredentialRepresentation.PASSWORD);
-            credential.setValue(request.getPassword());
-            credential.setTemporary(false);
-
-            user.setCredentials(Collections.singletonList(credential));
-
-            Response response = keycloak.realm(realm).users().create(user);
-
-            if (response.getStatus() == 201) {
-                return new MessageResponse("User registered successfully");
-            } else if (response.getStatus() == 409) {
-                throw new com.example.quizmaster.exception.ApiException("User already exists",
-                        org.springframework.http.HttpStatus.CONFLICT);
-            } else {
-                throw new com.example.quizmaster.exception.ApiException(
-                        "Failed to register user. Status: " + response.getStatus(),
-                        org.springframework.http.HttpStatus.valueOf(response.getStatus()));
-            }
-        } catch (com.example.quizmaster.exception.ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Registration failed: " + e.getMessage());
-        }
-    }
-
-    public java.util.Optional<com.example.quizmaster.entity.User> findByEmail(String email) {
-        try (Keycloak keycloak = getKeycloakInstance()) {
-            java.util.List<UserRepresentation> users = keycloak.realm(realm).users().searchByEmail(email, true);
-            if (users.isEmpty()) {
-                return java.util.Optional.empty();
-            }
-            UserRepresentation keycloakUser = users.get(0);
-            com.example.quizmaster.entity.User user = new com.example.quizmaster.entity.User();
-            user.setId(keycloakUser.getId());
-            user.setEmail(keycloakUser.getEmail());
-            user.setFirstName(keycloakUser.getFirstName());
-            user.setLastName(keycloakUser.getLastName());
-            return java.util.Optional.of(user);
-        } catch (Exception e) {
-            return java.util.Optional.empty();
-        }
-    }
-
-    private Keycloak getKeycloakInstance() {
-        return KeycloakBuilder.builder()
-                .serverUrl(authServerUrl)
-                .realm(realm)
-                .grantType("client_credentials")
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .build();
     }
 }

@@ -1,26 +1,17 @@
 package com.example.quizmaster.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class LoginResponse {
-
-    @JsonProperty("access_token")
     private String accessToken;
+    private String refreshToken;
+    private long expiresIn;
+    private String tokenType;
 
-    @JsonProperty("id")
-    private String id;
-
-    @JsonProperty("first_name")
-    private String firstName;
-
-    @JsonProperty("last_name")
-    private String lastName;
-
-    public LoginResponse(String accessToken, String id, String firstName, String lastName) {
+    // Constructor & Getters
+    public LoginResponse(String accessToken, String refreshToken, long expiresIn, String tokenType) {
         this.accessToken = accessToken;
-        this.id = id;
-        this.firstName = firstName;
-        this.lastName = lastName;
+        this.refreshToken = refreshToken;
+        this.expiresIn = expiresIn;
+        this.tokenType = tokenType;
     }
 
     public String getAccessToken() {
@@ -31,27 +22,27 @@ public class LoginResponse {
         this.accessToken = accessToken;
     }
 
-    public String getId() {
-        return id;
+    public String getRefreshToken() {
+        return refreshToken;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public long getExpiresIn() {
+        return expiresIn;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public void setExpiresIn(long expiresIn) {
+        this.expiresIn = expiresIn;
     }
 
-    public String getLastName() {
-        return lastName;
+    public String getTokenType() {
+        return tokenType;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
     }
 }

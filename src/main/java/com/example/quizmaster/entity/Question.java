@@ -1,13 +1,23 @@
 package com.example.quizmaster.entity;
 
-import java.util.List;
-
+@jakarta.persistence.Entity
+@jakarta.persistence.Table(name = "questions")
 public class Question {
 
+    @jakarta.persistence.Id
+    @jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private Long id;
+
     private String questionTitle;
+
+    @com.fasterxml.jackson.annotation.JsonBackReference
+    @jakarta.persistence.ManyToOne
+    @jakarta.persistence.JoinColumn(name = "quiz_id")
     private Quiz quiz;
-    private List<Answer> answers;
+
+    @com.fasterxml.jackson.annotation.JsonManagedReference
+    @jakarta.persistence.OneToMany(mappedBy = "question", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<Option> answers;
 
     public Question() {
     }
@@ -41,11 +51,11 @@ public class Question {
         this.quiz = quiz;
     }
 
-    public List<Answer> getAnswers() {
+    public java.util.List<Option> getAnswers() {
         return answers;
     }
 
-    public void setAnswers(List<Answer> answers) {
+    public void setAnswers(java.util.List<Option> answers) {
         this.answers = answers;
     }
 }

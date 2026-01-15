@@ -1,11 +1,18 @@
 package com.example.quizmaster.entity;
 
+@jakarta.persistence.Entity
+@jakarta.persistence.Table(name = "users")
 public class User {
 
+    @jakarta.persistence.Id
     private String id;
+
     private String email;
-    private String password;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("firstName")
     private String firstName;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("lastName")
     private String lastName;
 
     public User() {
@@ -13,7 +20,6 @@ public class User {
 
     public User(String email, String password, String firstName, String lastName) {
         this.email = email;
-        this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
     }
@@ -32,14 +38,6 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     public String getFirstName() {

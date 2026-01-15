@@ -1,15 +1,26 @@
 package com.example.quizmaster.entity;
 
-import java.util.List;
-
+@jakarta.persistence.Entity
+@jakarta.persistence.Table(name = "quizzes")
 public class Quiz {
 
+    @jakarta.persistence.Id
+    @jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private Long id;
+
     private String title;
     private String description;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("public")
     private boolean isPublic;
+
+    @jakarta.persistence.ManyToOne
+    @jakarta.persistence.JoinColumn(name = "creator_id")
     private User creator;
-    private List<Question> questions;
+
+    @com.fasterxml.jackson.annotation.JsonManagedReference
+    @jakarta.persistence.OneToMany(mappedBy = "quiz", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<Question> questions;
 
     public Quiz() {
     }
@@ -61,11 +72,11 @@ public class Quiz {
         this.creator = creator;
     }
 
-    public List<Question> getQuestions() {
+    public java.util.List<Question> getQuestions() {
         return questions;
     }
 
-    public void setQuestions(List<Question> questions) {
+    public void setQuestions(java.util.List<Question> questions) {
         this.questions = questions;
     }
 }

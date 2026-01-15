@@ -7,6 +7,7 @@ import com.example.quizmaster.dto.SignUpRequest;
 import com.example.quizmaster.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,12 +23,29 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/signin")
+    @GetMapping("/me")
+    public ResponseEntity<com.example.quizmaster.entity.User> getCurrentUser(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.jwt.Jwt jwt) {
+        if (jwt == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        com.example.quizmaster.entity.User user = new com.example.quizmaster.entity.User();
+        // Assuming 'sub' is the ID, and other claims exist. Adjust claim names as
+        // needed based on Keycloak config.
+        user.setId(jwt.getClaimAsString("sub"));
+        user.setEmail(jwt.getClaimAsString("email"));
+        user.setFirstName(jwt.getClaimAsString("given_name"));
+        user.setLastName(jwt.getClaimAsString("family_name"));
+
+        return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/auth/signin")
     public ResponseEntity<LoginResponse> signin(@RequestBody LoginRequest loginRequest) {
         return ResponseEntity.status(HttpStatus.OK).body(userService.login(loginRequest));
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/auth/signup")
     public ResponseEntity<MessageResponse> signup(
             @RequestBody SignUpRequest signUpRequest) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.register(signUpRequest));

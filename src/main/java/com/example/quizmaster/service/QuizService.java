@@ -1,35 +1,90 @@
 package com.example.quizmaster.service;
 
-// Service to manage Quizzes
-
 import com.example.quizmaster.entity.Quiz;
-
+import com.example.quizmaster.entity.User;
+import com.example.quizmaster.repository.QuizRepository;
+import com.example.quizmaster.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class QuizService {
 
-    private final static java.util.List<Quiz> quizzes = new java.util.ArrayList<>();
+    private final QuizRepository quizRepository;
+    private final UserRepository userRepository;
 
-    public QuizService() {
+    @Autowired
+    public QuizService(QuizRepository quizRepository, UserRepository userRepository) {
+        this.quizRepository = quizRepository;
+        this.userRepository = userRepository;
     }
 
-    public java.util.List<Quiz> getAllPublicQuizzes() {
-        return quizzes.stream().filter(Quiz::isPublic).toList();
-    }
+    public List<Quiz> getAllQuizzes(String search, int page, int limit, String sort, boolean publicOnly) {
+        Sort sortObj = Sort.by(Sort.Direction.DESC, "id"); // Default "newest"
+        if ("title".equalsIgnoreCase(sort)) {
+            sortObj = Sort.by(Sort.Direction.ASC, "title");
+        }
 
-    public java.util.List<Quiz> getQuizzesByUser(String userId) {
-        return quizzes.stream().filter(q -> q.getCreator().getId().equals(userId)).toList();
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), limit, sortObj);
+
+        Specification<Quiz> spec = Specification.where((Specification<Quiz>) null);
+
+        if (publicOnly) {
+            spec = spec.and((root, query, cb) -> cb.isTrue(root.get("isPublic")));
+        }
+
+        if (search != null && !search.isEmpty()) {
+            String lowerSearch = search.toLowerCase();
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("title")), "%" + lowerSearch + "%"),
+                    cb.like(cb.lower(root.get("description")), "%" + lowerSearch + "%")));
+        }
+
+        Page<Quiz> quizPage = quizRepository.findAll(spec, pageable);
+        return quizPage.getContent();
     }
 
     public void saveQuiz(Quiz quiz) {
-        if (quiz.getId() == null) {
-            quiz.setId((long) (quizzes.size() + 1));
+        // Handle User
+        if (quiz.getCreator() != null && quiz.getCreator().getId() != null) {
+            String userId = quiz.getCreator().getId();
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+            quiz.setCreator(user);
         }
-        quizzes.add(quiz);
+
+        if (quiz.getQuestions() != null) {
+            for (com.example.quizmaster.entity.Question question : quiz.getQuestions()) {
+                question.setQuiz(quiz); // Back reference
+                if (question.getAnswers() != null) {
+                    for (com.example.quizmaster.entity.Option answer : question.getAnswers()) {
+                        answer.setQuestion(question); // Back reference
+                    }
+                }
+            }
+        }
+        quizRepository.save(quiz);
     }
 
-    public java.util.Optional<Quiz> findById(Long id) {
-        return quizzes.stream().filter(q -> q.getId().equals(id)).findFirst();
+    public void updateQuiz(Quiz quiz) {
+        // saveQuiz handles update if ID exists, but we need to ensure relationships are
+        // set
+        saveQuiz(quiz);
+    }
+
+    public void deleteQuiz(Long id) {
+        quizRepository.deleteById(id);
+    }
+
+    public Optional<Quiz> findById(Long id) {
+        return quizRepository.findById(id);
     }
 }
