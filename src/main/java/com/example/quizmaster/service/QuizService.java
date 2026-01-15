@@ -1,90 +1,74 @@
 package com.example.quizmaster.service;
 
+import com.example.quizmaster.dto.QuizDto;
+import com.example.quizmaster.entity.Option;
+import com.example.quizmaster.entity.Question;
 import com.example.quizmaster.entity.Quiz;
 import com.example.quizmaster.entity.User;
 import com.example.quizmaster.repository.QuizRepository;
 import com.example.quizmaster.repository.UserRepository;
+
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-
 @Service
+@Transactional
 public class QuizService {
 
-    private final QuizRepository quizRepository;
-    private final UserRepository userRepository;
+    @Autowired
+    private QuizRepository quizRepository;
 
     @Autowired
-    public QuizService(QuizRepository quizRepository, UserRepository userRepository) {
-        this.quizRepository = quizRepository;
-        this.userRepository = userRepository;
-    }
+    private UserRepository userRepository;
 
-    public List<Quiz> getAllQuizzes(String search, int page, int limit, String sort, boolean publicOnly) {
-        Sort sortObj = Sort.by(Sort.Direction.DESC, "id"); // Default "newest"
-        if ("title".equalsIgnoreCase(sort)) {
-            sortObj = Sort.by(Sort.Direction.ASC, "title");
-        }
+    public Quiz createQuiz(QuizDto.CreateRequest request, String userId) {
+        // 1. Fetch the Creator (User)
+        // We use the ID from Keycloak (JWT) to find our local User entity
+        User creator = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found. Ensure sync is working."));
 
-        Pageable pageable = PageRequest.of(Math.max(0, page - 1), limit, sortObj);
+        // 2. Map Quiz Basic Info
+        Quiz quiz = new Quiz();
+        quiz.setTitle(request.getTitle());
+        quiz.setDescription(request.getDescription());
+        quiz.setPublic(request.isPublic());
+        quiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
+        quiz.setCreator(creator); // Link the creator
 
-        Specification<Quiz> spec = Specification.where((Specification<Quiz>) null);
+        // 3. Map Questions (and maintain Order)
+        if (request.getQuestions() != null) {
+            int questionOrder = 0;
 
-        if (publicOnly) {
-            spec = spec.and((root, query, cb) -> cb.isTrue(root.get("isPublic")));
-        }
+            for (QuizDto.QuestionRequest qDto : request.getQuestions()) {
+                Question question = new Question();
+                question.setText(qDto.getText());
+                question.setPoints(qDto.getPoints());
+                question.setType(qDto.getType());
+                question.setOrderIndex(questionOrder++); // Auto-increment order
 
-        if (search != null && !search.isEmpty()) {
-            String lowerSearch = search.toLowerCase();
-            spec = spec.and((root, query, cb) -> cb.or(
-                    cb.like(cb.lower(root.get("title")), "%" + lowerSearch + "%"),
-                    cb.like(cb.lower(root.get("description")), "%" + lowerSearch + "%")));
-        }
+                // IMPORTANT: Link Parent to Child
+                quiz.addQuestion(question);
 
-        Page<Quiz> quizPage = quizRepository.findAll(spec, pageable);
-        return quizPage.getContent();
-    }
+                // 4. Map Options
+                if (qDto.getOptions() != null) {
+                    int optionOrder = 0;
+                    for (QuizDto.OptionRequest oDto : qDto.getOptions()) {
+                        Option option = new Option();
+                        option.setText(oDto.getText());
+                        option.setCorrect(oDto.isCorrect());
+                        option.setOrderIndex(optionOrder++);
 
-    public void saveQuiz(Quiz quiz) {
-        // Handle User
-        if (quiz.getCreator() != null && quiz.getCreator().getId() != null) {
-            String userId = quiz.getCreator().getId();
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
-            quiz.setCreator(user);
-        }
-
-        if (quiz.getQuestions() != null) {
-            for (com.example.quizmaster.entity.Question question : quiz.getQuestions()) {
-                question.setQuiz(quiz); // Back reference
-                if (question.getAnswers() != null) {
-                    for (com.example.quizmaster.entity.Option answer : question.getAnswers()) {
-                        answer.setQuestion(question); // Back reference
+                        // IMPORTANT: Link Parent to Child
+                        question.addOption(option);
                     }
                 }
             }
         }
-        quizRepository.save(quiz);
+
+        // 5. Save Everything
+        // Because of CascadeType.ALL, this saves Quiz, Questions, and Options
+        return quizRepository.save(quiz);
     }
 
-    public void updateQuiz(Quiz quiz) {
-        // saveQuiz handles update if ID exists, but we need to ensure relationships are
-        // set
-        saveQuiz(quiz);
-    }
-
-    public void deleteQuiz(Long id) {
-        quizRepository.deleteById(id);
-    }
-
-    public Optional<Quiz> findById(Long id) {
-        return quizRepository.findById(id);
-    }
 }

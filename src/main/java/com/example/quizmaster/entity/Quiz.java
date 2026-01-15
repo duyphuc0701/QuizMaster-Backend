@@ -1,42 +1,61 @@
 package com.example.quizmaster.entity;
 
-@jakarta.persistence.Entity
-@jakarta.persistence.Table(name = "quizzes")
+import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "quizzes")
 public class Quiz {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id; // UUID is safer for public URLs than Long (1, 2, 3)
 
+    @Column(nullable = false)
     private String title;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("public")
-    private boolean isPublic;
+    private boolean isPublic = false;
 
-    @jakarta.persistence.ManyToOne
-    @jakarta.persistence.JoinColumn(name = "creator_id")
+    private Integer timeLimitMinutes; // Null means "unlimited"
+
+    // The Creator (Linked to our Local User table)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id", nullable = false)
     private User creator;
 
-    @com.fasterxml.jackson.annotation.JsonManagedReference
-    @jakarta.persistence.OneToMany(mappedBy = "quiz", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
-    private java.util.List<Question> questions;
+    // The Questions
+    // orphanRemoval = true: If you remove a Question from this list, DB deletes it
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC") // Automatically sorts fetching
+    private List<Question> questions = new ArrayList<>();
 
-    public Quiz() {
+    // Audit Fields
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    // Helper to add questions
+    public void addQuestion(Question question) {
+        questions.add(question);
+        question.setQuiz(this);
     }
 
-    public Quiz(String title, String description, boolean isPublic, User creator) {
-        this.title = title;
-        this.description = description;
-        this.isPublic = isPublic;
-        this.creator = creator;
-    }
-
-    public Long getId() {
+    // Getters and Setters
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -64,6 +83,14 @@ public class Quiz {
         this.isPublic = isPublic;
     }
 
+    public Integer getTimeLimitMinutes() {
+        return timeLimitMinutes;
+    }
+
+    public void setTimeLimitMinutes(Integer timeLimitMinutes) {
+        this.timeLimitMinutes = timeLimitMinutes;
+    }
+
     public User getCreator() {
         return creator;
     }
@@ -72,11 +99,27 @@ public class Quiz {
         this.creator = creator;
     }
 
-    public java.util.List<Question> getQuestions() {
+    public List<Question> getQuestions() {
         return questions;
     }
 
-    public void setQuestions(java.util.List<Question> questions) {
+    public void setQuestions(List<Question> questions) {
         this.questions = questions;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

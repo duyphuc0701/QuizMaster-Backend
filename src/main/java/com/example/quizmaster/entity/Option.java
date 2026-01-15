@@ -1,32 +1,29 @@
 package com.example.quizmaster.entity;
 
-@jakarta.persistence.Entity
-@jakarta.persistence.Table(name = "options")
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "options")
 public class Option {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @com.fasterxml.jackson.annotation.JsonBackReference
-    @jakarta.persistence.ManyToOne
-    @jakarta.persistence.JoinColumn(name = "question_id")
-    private Question question;
-
-    @com.fasterxml.jackson.annotation.JsonProperty("correct")
-    private boolean isCorrect;
-
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String text;
 
-    public Option() {
-    }
+    @Column(nullable = false)
+    private boolean isCorrect = false;
 
-    public Option(Question question, boolean isCorrect, String text) {
-        this.question = question;
-        this.isCorrect = isCorrect;
-        this.text = text;
-    }
+    @Column(nullable = false)
+    private Integer orderIndex;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "question_id", nullable = false)
+    private Question question;
+
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -35,28 +32,35 @@ public class Option {
         this.id = id;
     }
 
-    public Question getQuestion() {
-        return question;
-    }
-
-    public void setQuestion(Question question) {
-        this.question = question;
-    }
-
-    @com.fasterxml.jackson.annotation.JsonProperty("correct")
-    public boolean isCorrect() {
-        return isCorrect;
-    }
-
-    public void setCorrect(boolean isCorrect) {
-        this.isCorrect = isCorrect;
-    }
-
     public String getText() {
         return text;
     }
 
     public void setText(String text) {
         this.text = text;
+    }
+
+    public boolean isCorrect() {
+        return isCorrect;
+    }
+
+    public void setCorrect(boolean correct) {
+        isCorrect = correct;
+    }
+
+    public Integer getOrderIndex() {
+        return orderIndex;
+    }
+
+    public void setOrderIndex(Integer orderIndex) {
+        this.orderIndex = orderIndex;
+    }
+
+    public Question getQuestion() {
+        return question;
+    }
+
+    public void setQuestion(Question question) {
+        this.question = question;
     }
 }

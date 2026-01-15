@@ -1,29 +1,28 @@
 package com.example.quizmaster.entity;
 
-@jakarta.persistence.Entity
-@jakarta.persistence.Table(name = "users")
+import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "users")
 public class User {
 
-    @jakarta.persistence.Id
-    private String id;
+    @Id
+    @Column(name = "id", nullable = false, unique = true)
+    private String id; // This is the Keycloak UUID (Type String)
 
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("firstName")
     private String firstName;
-
-    @com.fasterxml.jackson.annotation.JsonProperty("lastName")
     private String lastName;
 
-    public User() {
-    }
+    // Optional: Reverse mapping to see quizzes created by this user
+    @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY)
+    private List<Quiz> createdQuizzes = new ArrayList<>();
 
-    public User(String email, String password, String firstName, String lastName) {
-        this.email = email;
-        this.firstName = firstName;
-        this.lastName = lastName;
-    }
-
+    // Getters & Setters
     public String getId() {
         return id;
     }
@@ -54,5 +53,13 @@ public class User {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public List<Quiz> getCreatedQuizzes() {
+        return createdQuizzes;
+    }
+
+    public void setCreatedQuizzes(List<Quiz> createdQuizzes) {
+        this.createdQuizzes = createdQuizzes;
     }
 }

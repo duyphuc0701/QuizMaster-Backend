@@ -130,4 +130,20 @@ public class UserService {
                     org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    // Change return type from 'User' to 'UserProfileDto'
+    public com.example.quizmaster.dto.UserProfileDto getUserById(String id) {
+        // 1. Fetch the Entity
+        com.example.quizmaster.entity.User user = userRepository.findById(id)
+                .orElseThrow(() -> new com.example.quizmaster.exception.ApiException(
+                        "User not found",
+                        org.springframework.http.HttpStatus.NOT_FOUND));
+
+        // 2. Map Entity to DTO (Only select the fields you want)
+        return new com.example.quizmaster.dto.UserProfileDto(
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName());
+    }
 }

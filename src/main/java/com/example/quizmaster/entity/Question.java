@@ -1,32 +1,45 @@
 package com.example.quizmaster.entity;
 
-@jakarta.persistence.Entity
-@jakarta.persistence.Table(name = "questions")
+import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "questions")
 public class Question {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String questionTitle;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String text;
 
-    @com.fasterxml.jackson.annotation.JsonBackReference
-    @jakarta.persistence.ManyToOne
-    @jakarta.persistence.JoinColumn(name = "quiz_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "quiz_id", nullable = false)
     private Quiz quiz;
 
-    @com.fasterxml.jackson.annotation.JsonManagedReference
-    @jakarta.persistence.OneToMany(mappedBy = "question", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
-    private java.util.List<Option> answers;
+    @Column(nullable = false)
+    private Integer points = 1; // Default to 1 point
 
-    public Question() {
+    @Column(nullable = false)
+    private Integer orderIndex; // 0, 1, 2... for ordering
+
+    // e.g., SINGLE_CHOICE, MULTIPLE_CHOICE
+    private String type = "SINGLE_CHOICE";
+
+    // The Options
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private List<Option> options = new ArrayList<>();
+
+    // Helper to add options
+    public void addOption(Option option) {
+        options.add(option);
+        option.setQuestion(this);
     }
 
-    public Question(String questionTitle, Quiz quiz) {
-        this.questionTitle = questionTitle;
-        this.quiz = quiz;
-    }
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -35,12 +48,12 @@ public class Question {
         this.id = id;
     }
 
-    public String getQuestionTitle() {
-        return questionTitle;
+    public String getText() {
+        return text;
     }
 
-    public void setQuestionTitle(String questionTitle) {
-        this.questionTitle = questionTitle;
+    public void setText(String text) {
+        this.text = text;
     }
 
     public Quiz getQuiz() {
@@ -51,11 +64,35 @@ public class Question {
         this.quiz = quiz;
     }
 
-    public java.util.List<Option> getAnswers() {
-        return answers;
+    public Integer getPoints() {
+        return points;
     }
 
-    public void setAnswers(java.util.List<Option> answers) {
-        this.answers = answers;
+    public void setPoints(Integer points) {
+        this.points = points;
+    }
+
+    public Integer getOrderIndex() {
+        return orderIndex;
+    }
+
+    public void setOrderIndex(Integer orderIndex) {
+        this.orderIndex = orderIndex;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public List<Option> getOptions() {
+        return options;
+    }
+
+    public void setOptions(List<Option> options) {
+        this.options = options;
     }
 }
