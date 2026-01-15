@@ -23,8 +23,6 @@ public class Quiz {
 
     private boolean isPublic = false;
 
-    private Integer timeLimitMinutes; // Null means "unlimited"
-
     // The Creator (Linked to our Local User table)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
@@ -81,14 +79,6 @@ public class Quiz {
 
     public void setPublic(boolean isPublic) {
         this.isPublic = isPublic;
-    }
-
-    public Integer getTimeLimitMinutes() {
-        return timeLimitMinutes;
-    }
-
-    public void setTimeLimitMinutes(Integer timeLimitMinutes) {
-        this.timeLimitMinutes = timeLimitMinutes;
     }
 
     public User getCreator() {

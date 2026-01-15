@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class QuizDto {
 
     // Main Quiz Request
@@ -13,8 +15,9 @@ public class QuizDto {
         private String title;
 
         private String description;
-        private boolean isPublic;
-        private Integer timeLimitMinutes;
+
+        @JsonProperty("isPublic")
+        private Boolean isPublic;
 
         @NotEmpty(message = "Quiz must have at least one question")
         private List<QuestionRequest> questions;
@@ -36,20 +39,12 @@ public class QuizDto {
             this.description = description;
         }
 
-        public boolean isPublic() {
+        public Boolean isPublic() {
             return isPublic;
         }
 
-        public void setPublic(boolean aPublic) {
+        public void setPublic(Boolean aPublic) {
             isPublic = aPublic;
-        }
-
-        public Integer getTimeLimitMinutes() {
-            return timeLimitMinutes;
-        }
-
-        public void setTimeLimitMinutes(Integer timeLimitMinutes) {
-            this.timeLimitMinutes = timeLimitMinutes;
         }
 
         public List<QuestionRequest> getQuestions() {
@@ -70,6 +65,8 @@ public class QuizDto {
         private Integer points;
 
         private String type; // e.g., "SINGLE_CHOICE"
+
+        private Integer timeLimitSeconds;
 
         @NotEmpty(message = "Question must have options")
         private List<OptionRequest> options;
@@ -99,6 +96,14 @@ public class QuizDto {
             this.type = type;
         }
 
+        public Integer getTimeLimitSeconds() {
+            return timeLimitSeconds;
+        }
+
+        public void setTimeLimitSeconds(Integer timeLimitSeconds) {
+            this.timeLimitSeconds = timeLimitSeconds;
+        }
+
         public List<OptionRequest> getOptions() {
             return options;
         }
@@ -113,7 +118,8 @@ public class QuizDto {
         @NotBlank(message = "Option text is required")
         private String text;
 
-        private boolean isCorrect;
+        @JsonProperty("isCorrect")
+        private Boolean isCorrect;
 
         // Getters & Setters
         public String getText() {
@@ -124,11 +130,11 @@ public class QuizDto {
             this.text = text;
         }
 
-        public boolean isCorrect() {
+        public Boolean isCorrect() {
             return isCorrect;
         }
 
-        public void setCorrect(boolean correct) {
+        public void setCorrect(Boolean correct) {
             isCorrect = correct;
         }
     }

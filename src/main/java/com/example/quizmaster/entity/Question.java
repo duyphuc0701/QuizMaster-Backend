@@ -28,6 +28,8 @@ public class Question {
     // e.g., SINGLE_CHOICE, MULTIPLE_CHOICE
     private String type = "SINGLE_CHOICE";
 
+    private Integer timeLimitSeconds; // Null means "unlimited"
+
     // The Options
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
@@ -86,6 +88,14 @@ public class Question {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public Integer getTimeLimitSeconds() {
+        return timeLimitSeconds;
+    }
+
+    public void setTimeLimitSeconds(Integer timeLimitSeconds) {
+        this.timeLimitSeconds = timeLimitSeconds;
     }
 
     public List<Option> getOptions() {
