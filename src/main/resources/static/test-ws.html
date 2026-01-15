@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Game - WebSocket Tester</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .box {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .status {
+            font-weight: bold;
+        }
+
+        .connected {
+            color: green;
+        }
+
+        .disconnected {
+            color: red;
+        }
+
+        #log {
+            background: #f4f4f4;
+            height: 300px;
+            overflow-y: scroll;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .message-entry {
+            border-bottom: 1px solid #eee;
+            padding: 5px 0;
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 0.8em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>🧩 Game Session WebSocket Tester</h2>
+
+    <div class="box">
+        <label>1. Enter Session UUID (from Postman 'Create Session'):</label><br>
+        <input type="text" id="sessionId" placeholder="e.g. 550e8400-e29b..." style="width: 300px;">
+        <button onclick="connect()">Connect & Subscribe</button>
+        <button onclick="disconnect()">Disconnect</button>
+
+        <p>Status: <span id="status" class="status disconnected">Disconnected</span></p>
+    </div>
+
+    <div class="box">
+        <h3>🔴 Live Events Log</h3>
+        <p>Waiting for players to join...</p>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        var stompClient = null;
+
+        function connect() {
+            var sessionId = document.getElementById('sessionId').value.trim();
+            if (!sessionId) {
+                alert("Please enter a Session ID first!");
+                return;
+            }
+
+            // 2. Connect to the Endpoint defined in WebSocketConfig.java
+            // registry.addEndpoint("/ws").withSockJS();
+            var socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function (frame) {
+                setConnected(true);
+                log("✅ Connected to Server");
+
+                // 3. Subscribe to the specific Topic for this session
+                // The service broadcasts to: /topic/session/{id}/players
+                var topic = '/topic/session/' + sessionId + '/players';
+
+                log("📡 Subscribing to: " + topic);
+
+                stompClient.subscribe(topic, function (message) {
+                    // 4. Handle incoming message
+                    showEvent(JSON.parse(message.body));
+                });
+
+            }, function (error) {
+                log("❌ Connection Error: " + error);
+            });
+        }
+
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.disconnect();
+            }
+            setConnected(false);
+            log("🛑 Disconnected");
+        }
+
+        function setConnected(connected) {
+            var statusSpan = document.getElementById("status");
+            if (connected) {
+                statusSpan.className = "status connected";
+                statusSpan.innerText = "Connected";
+            } else {
+                statusSpan.className = "status disconnected";
+                statusSpan.innerText = "Disconnected";
+            }
+        }
+
+        function showEvent(data) {
+            // Display the JSON data nicely
+            var content = "<strong>" + data.type + "</strong>: " + data.nickname + " (ID: " + data.playerId + ")";
+            log(content);
+        }
+
+        function log(message) {
+            var logDiv = document.getElementById('log');
+            var entry = document.createElement('div');
+            entry.className = "message-entry";
+
+            var time = new Date().toLocaleTimeString();
+            entry.innerHTML = "<span class='timestamp'>[" + time + "]</span> " + message;
+
+            logDiv.appendChild(entry);
+            // Auto-scroll to bottom
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+    </script>
+</body>
+
+</html>

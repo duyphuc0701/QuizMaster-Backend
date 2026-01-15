@@ -7,22 +7,35 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.example.quizmaster.constants.SessionStatus;
+import com.example.quizmaster.dto.PlayerDto;
 import com.example.quizmaster.exception.ApiException;
 import com.example.quizmaster.entity.GameSession;
+import com.example.quizmaster.entity.Player;
 import com.example.quizmaster.entity.Quiz;
 import com.example.quizmaster.repository.GameSessionRepository;
+import com.example.quizmaster.repository.PlayerRepository;
 import com.example.quizmaster.repository.QuizRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class GameSessionService {
+    private final GameSessionRepository sessionRepository;
+    private final QuizRepository quizRepository;
+    private final PlayerRepository playerRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+
     @Autowired
-    private GameSessionRepository sessionRepository;
-    @Autowired
-    private QuizRepository quizRepository;
+    public GameSessionService(GameSessionRepository sessionRepository, QuizRepository quizRepository,
+            PlayerRepository playerRepository, SimpMessagingTemplate messagingTemplate) {
+        this.sessionRepository = sessionRepository;
+        this.quizRepository = quizRepository;
+        this.playerRepository = playerRepository;
+        this.messagingTemplate = messagingTemplate;
+    }
 
     @Transactional
     public GameSession createSession(String quizId, String userId) {
@@ -101,6 +114,38 @@ public class GameSessionService {
         // /topic/session/{sessionId}
 
         return savedSession;
+    }
+
+    @Transactional
+    public Player joinSession(String gamePin, String nickname) {
+        // 1. Find Session by PIN
+        GameSession session = sessionRepository.findByGamePin(gamePin)
+                .orElseThrow(() -> new EntityNotFoundException("Game PIN not found"));
+
+        // 2. Check Status (Can only join if WAITING)
+        if (session.getStatus() != SessionStatus.WAITING_FOR_PLAYERS) {
+            throw new ApiException("Game has already started or finished.", HttpStatus.BAD_REQUEST);
+        }
+
+        // 3. Check for Duplicate Nickname in this session
+        if (playerRepository.existsByGameSessionAndNickname(session, nickname)) {
+            throw new ApiException("Nickname '" + nickname + "' is already taken in this game.", HttpStatus.CONFLICT);
+        }
+
+        // 4. Create and Save Player
+        Player player = new Player(nickname, session);
+        Player savedPlayer = playerRepository.save(player);
+
+        // 5. BROADCAST EVENT: Notify the Host (and everyone else in lobby)
+        // Topic: /topic/session/{sessionId}/players
+        String destination = "/topic/session/" + session.getId() + "/players";
+
+        // We send a simple DTO or just the nickname
+        // In a real app, define a specific "PlayerJoinedEvent" DTO
+        PlayerDto.PlayerJoinedMessage message = new PlayerDto.PlayerJoinedMessage(nickname, savedPlayer.getId());
+        messagingTemplate.convertAndSend(destination, message);
+
+        return savedPlayer;
     }
 
     private String generateUniquePin() {

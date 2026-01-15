@@ -4,7 +4,7 @@ import com.example.quizmaster.entity.GameSession;
 
 import jakarta.validation.constraints.NotBlank;
 
-public class CreateSessionDto {
+public class GameSessionDto {
 
     // 1. INCOMING: Request to start a session
     public static class CreateRequest {
@@ -92,6 +92,68 @@ public class CreateSessionDto {
 
         public void setHostId(String hostId) {
             this.hostId = hostId;
+        }
+    }
+
+    public static class JoinRequest {
+        @NotBlank(message = "Game PIN is required")
+        private String gamePin;
+
+        @NotBlank(message = "Nickname is required")
+        private String nickname;
+
+        // Getters & Setters
+        public String getGamePin() {
+            return gamePin;
+        }
+
+        public void setGamePin(String gamePin) {
+            this.gamePin = gamePin;
+        }
+
+        public String getNickname() {
+            return nickname;
+        }
+
+        public void setNickname(String nickname) {
+            this.nickname = nickname;
+        }
+    }
+
+    public static class JoinResponse {
+        private Long playerId;
+        private String nickname;
+        private String sessionId;
+
+        public JoinResponse(Long playerId, String nickname, String sessionId) {
+            this.playerId = playerId;
+            this.nickname = nickname;
+            this.sessionId = sessionId;
+        }
+
+        // Getters & Setters
+        public Long getPlayerId() {
+            return playerId;
+        }
+
+        public void setPlayerId(Long playerId) {
+            this.playerId = playerId;
+        }
+
+        public String getNickname() {
+            return nickname;
+        }
+
+        public void setNickname(String nickname) {
+            this.nickname = nickname;
+        }
+
+        public String getSessionId() {
+            return sessionId;
+        }
+
+        public void setSessionId(String sessionId) {
+            this.sessionId = sessionId;
         }
     }
 }
