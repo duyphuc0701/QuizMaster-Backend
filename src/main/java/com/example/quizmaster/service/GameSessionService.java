@@ -11,6 +11,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.example.quizmaster.constants.SessionStatus;
 import com.example.quizmaster.dto.PlayerDto;
+import com.example.quizmaster.dto.SessionEventDto;
 import com.example.quizmaster.exception.ApiException;
 import com.example.quizmaster.entity.GameSession;
 import com.example.quizmaster.entity.Player;
@@ -87,8 +88,8 @@ public class GameSessionService {
         session.setStatus(SessionStatus.IN_PROGRESS);
         GameSession savedSession = sessionRepository.save(session);
 
-        // TODO: Broadcast "GAME_STARTED" event via WebSocket to topic
-        // /topic/session/{sessionId}
+        // Broadcast "GAME_STARTED" event via WebSocket
+        broadcastEvent(sessionId, "GAME_STARTED");
 
         return savedSession;
     }
@@ -110,8 +111,8 @@ public class GameSessionService {
         session.setStatus(SessionStatus.FINISHED);
         GameSession savedSession = sessionRepository.save(session);
 
-        // TODO: Broadcast "GAME_ENDED" event via WebSocket to topic
-        // /topic/session/{sessionId}
+        // Broadcast "GAME_ENDED" event via WebSocket
+        broadcastEvent(sessionId, "GAME_ENDED");
 
         return savedSession;
     }
@@ -148,6 +149,32 @@ public class GameSessionService {
         return savedPlayer;
     }
 
+    @Transactional
+    public void removePlayer(String sessionId, Long playerId) {
+        // 1. Find the Player
+        Player player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new EntityNotFoundException("Player not found"));
+
+        // 2. Validate they belong to the correct session
+        if (!player.getGameSession().getId().equals(sessionId)) {
+            throw new ApiException("Player " + playerId + " does not belong to session " + sessionId,
+                    HttpStatus.BAD_REQUEST);
+        }
+
+        // 3. Capture details before deleting (for the notification)
+        String nickname = player.getNickname();
+
+        // 4. Delete from DB
+        playerRepository.delete(player);
+
+        // 5. BROADCAST EVENT: Notify everyone (Host + Players)
+        // Payload: { "type": "PLAYER_LEFT", "playerId": 123, "nickname": "Mario" }
+        String destination = "/topic/session/" + sessionId + "/players";
+
+        PlayerDto.PlayerLeftMessage message = new PlayerDto.PlayerLeftMessage(nickname, playerId);
+        messagingTemplate.convertAndSend(destination, message);
+    }
+
     private String generateUniquePin() {
         Random random = new Random();
         String pin;
@@ -157,5 +184,14 @@ public class GameSessionService {
             pin = String.valueOf(number);
         } while (sessionRepository.existsByGamePinAndStatusNot(pin, SessionStatus.FINISHED));
         return pin;
+    }
+
+    private void broadcastEvent(String sessionId, String eventType) {
+        String destination = "/topic/session/" + sessionId + "/players";
+
+        SessionEventDto event = new SessionEventDto(eventType, sessionId);
+
+        System.out.println(">>> BROADCASTING " + eventType + " to " + destination);
+        messagingTemplate.convertAndSend(destination, event);
     }
 }

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Host Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="card">
+
+        <div id="configScreen">
+            <h2>👑 Host a Game</h2>
+
+            <label class="info-label">Your JWT Token (from Login):</label>
+            <input type="text" id="inputToken" placeholder="Paste your Bearer Token here">
+
+            <label class="info-label">Quiz ID (UUID):</label>
+            <input type="text" id="inputQuizId" placeholder="Paste Quiz UUID here">
+
+            <button id="btnCreate">Create Session</button>
+            <p id="hostErrorMsg" class="error-msg"></p>
+        </div>
+
+        <div id="hostLobbyScreen" class="hidden">
+            <h3>Join with PIN:</h3>
+            <div id="displayPin" class="pin-display">------</div>
+
+            <p>Players in Lobby: <strong id="playerCount">0</strong></p>
+
+            <div id="playerGrid"></div>
+
+            <button id="btnStart" style="background-color: #28a745;">Start Game 🚀</button>
+        </div>
+
+        <div id="hostGameScreen" class="hidden">
+            <h1>Game in Progress...</h1>
+            <p>Look at the big screen!</p>
+            <button id="btnEnd" class="secondary">End Game</button>
+        </div>
+        <div id="hostGameOverScreen" class="hidden">
+            <h1>🏁 Game Over!</h1>
+            <p>Thank you for playing.</p>
+            <button onclick="location.reload()">Host New Game</button>
+        </div>
+
+    </div>
+
+    <script src="js/stomp-client.js"></script>
+    <script src="js/game-logic.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>

@@ -24,7 +24,7 @@ public class GameSessionController {
     }
 
     @PostMapping
-    public ResponseEntity<GameSessionDto.Response> createSession(
+    public ResponseEntity<GameSessionDto.CreateResponse> createSession(
             @Valid @RequestBody GameSessionDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         // 1. Extract User ID (subject) from the JWT token
@@ -35,28 +35,28 @@ public class GameSessionController {
         GameSession session = gameSessionService.createSession(request.getQuizId(), userId);
 
         // 3. Map Entity to DTO Response
-        GameSessionDto.Response response = GameSessionDto.Response.from(session);
+        GameSessionDto.CreateResponse response = GameSessionDto.CreateResponse.from(session);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/{sessionId}/start")
-    public ResponseEntity<GameSessionDto.Response> startSession(
+    public ResponseEntity<GameSessionDto.CreateResponse> startSession(
             @PathVariable String sessionId,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         GameSession session = gameSessionService.startGameSession(sessionId, userId);
-        GameSessionDto.Response response = GameSessionDto.Response.from(session);
+        GameSessionDto.CreateResponse response = GameSessionDto.CreateResponse.from(session);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{sessionId}/end")
-    public ResponseEntity<GameSessionDto.Response> endSession(
+    public ResponseEntity<GameSessionDto.CreateResponse> endSession(
             @PathVariable String sessionId,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         GameSession session = gameSessionService.endGameSession(sessionId, userId);
-        GameSessionDto.Response response = GameSessionDto.Response.from(session);
+        GameSessionDto.CreateResponse response = GameSessionDto.CreateResponse.from(session);
         return ResponseEntity.ok(response);
     }
 
@@ -66,7 +66,6 @@ public class GameSessionController {
 
         // Note: Joining usually doesn't require JWT (AuthenticationPrincipal)
         // because players are often anonymous guests.
-        // If your app requires login to play, add the JWT param.
 
         Player player = gameSessionService.joinSession(request.getGamePin(), request.getNickname());
 
@@ -76,5 +75,18 @@ public class GameSessionController {
                 player.getGameSession().getId());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{sessionId}/players/{playerId}/leave")
+    public ResponseEntity<Void> leaveSession(
+            @PathVariable String sessionId,
+            @PathVariable Long playerId) {
+
+        // Note: No JWT check here allows players to leave on their own.
+        // If you want "Kick" functionality (Host only), you would check JWT here.
+
+        gameSessionService.removePlayer(sessionId, playerId);
+
+        return ResponseEntity.noContent().build();
     }
 }

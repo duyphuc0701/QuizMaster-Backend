@@ -25,7 +25,7 @@ public class GameSessionDto {
     }
 
     // 2. OUTGOING: Response back to the host
-    public static class Response {
+    public static class CreateResponse {
         private String sessionId;
         private String gamePin;
         private String status;
@@ -33,11 +33,11 @@ public class GameSessionDto {
         private String hostId;
 
         // Default Constructor
-        public Response() {
+        public CreateResponse() {
         }
 
         // Constructor for easy mapping
-        public Response(String sessionId, String gamePin, String status, String quizTitle, String hostId) {
+        public CreateResponse(String sessionId, String gamePin, String status, String quizTitle, String hostId) {
             this.sessionId = sessionId;
             this.gamePin = gamePin;
             this.status = status;
@@ -45,8 +45,8 @@ public class GameSessionDto {
             this.hostId = hostId;
         }
 
-        public static Response from(GameSession session) {
-            return new Response(
+        public static CreateResponse from(GameSession session) {
+            return new CreateResponse(
                     session.getId(),
                     session.getGamePin(),
                     session.getStatus().name(),

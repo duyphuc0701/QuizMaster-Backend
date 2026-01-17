@@ -11,4 +11,15 @@ public class PlayerDto {
             this.playerId = playerId;
         }
     }
+
+    public static class PlayerLeftMessage {
+        public String type = "PLAYER_LEFT";
+        public String nickname;
+        public Long playerId;
+
+        public PlayerLeftMessage(String nickname, Long playerId) {
+            this.nickname = nickname;
+            this.playerId = playerId;
+        }
+    }
 }
