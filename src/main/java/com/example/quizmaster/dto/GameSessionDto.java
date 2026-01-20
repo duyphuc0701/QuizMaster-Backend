@@ -1,5 +1,7 @@
 package com.example.quizmaster.dto;
 
+import java.util.List;
+
 import com.example.quizmaster.entity.GameSession;
 
 import jakarta.validation.constraints.NotBlank;
@@ -124,11 +126,13 @@ public class GameSessionDto {
         private Long playerId;
         private String nickname;
         private String sessionId;
+        private List<PlayerInfo> currentPlayers;
 
-        public JoinResponse(Long playerId, String nickname, String sessionId) {
+        public JoinResponse(Long playerId, String nickname, String sessionId, List<PlayerInfo> currentPlayers) {
             this.playerId = playerId;
             this.nickname = nickname;
             this.sessionId = sessionId;
+            this.currentPlayers = currentPlayers;
         }
 
         // Getters & Setters
@@ -154,6 +158,41 @@ public class GameSessionDto {
 
         public void setSessionId(String sessionId) {
             this.sessionId = sessionId;
+        }
+
+        public List<PlayerInfo> getCurrentPlayers() {
+            return currentPlayers;
+        }
+
+        public void setCurrentPlayers(List<PlayerInfo> currentPlayers) {
+            this.currentPlayers = currentPlayers;
+        }
+    }
+
+    public static class PlayerInfo {
+        private String nickname;
+        private Long id;
+
+        public PlayerInfo(Long id, String nickname) {
+            this.id = id;
+            this.nickname = nickname;
+        }
+
+        // Getters and Setters
+        public String getNickname() {
+            return nickname;
+        }
+
+        public void setNickname(String nickname) {
+            this.nickname = nickname;
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
         }
     }
 }

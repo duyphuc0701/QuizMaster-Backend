@@ -35,6 +35,24 @@
             <h1>🚀 GO!</h1>
             <p>Look at the host screen for the question.</p>
         </div>
+        <div id="playerQuestionScreen" class="hidden">
+            <h3>Question <span id="pQNum">1</span></h3>
+            <div class="timer-bar">
+                <div id="pTimer" class="timer-progress"></div>
+            </div>
+
+            <p style="margin-bottom:20px;">Select your answer:</p>
+
+            <div id="playerOptionGrid" class="option-grid"></div>
+        </div>
+
+        <div id="playerResultScreen" class="hidden">
+            <div id="resultBox" class="feedback-box">
+                <span id="resultMessage">Answer Submitted!</span>
+            </div>
+            <p>Score: <span id="pScore">0</span></p>
+            <p>Waiting for host...</p>
+        </div>
         <div id="playerGameOverScreen" class="hidden">
             <h1>🏁 Game Finished</h1>
             <p>Check the host screen for the winner!</p>

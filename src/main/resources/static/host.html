@@ -41,6 +41,29 @@
             <p>Look at the big screen!</p>
             <button id="btnEnd" class="secondary">End Game</button>
         </div>
+        <div id="hostQuestionScreen" class="hidden">
+            <div class="header-row">
+                <span>Question <span id="qCurrent">1</span>/<span id="qTotal">10</span></span>
+                <button class="secondary" id="btnEndQuestion" style="width:auto; padding:5px 10px;">Stop Timer</button>
+            </div>
+
+            <h2 id="hostQuestionText" class="question-text">Loading...</h2>
+
+            <div class="timer-bar">
+                <div id="hostTimer" class="timer-progress"></div>
+            </div>
+
+            <div id="hostOptionGrid" class="option-grid"></div>
+
+            <div class="stats-box">
+                Answers: <strong id="hostAnswerCount" style="font-size:1.5em;">0</strong> / <span
+                    id="hostTotalPlayers">0</span>
+            </div>
+
+            <div id="hostControls" class="hidden">
+                <button id="btnNextQuestion" style="background-color: #28a745;">Next Question ➡</button>
+            </div>
+        </div>
         <div id="hostGameOverScreen" class="hidden">
             <h1>🏁 Game Over!</h1>
             <p>Thank you for playing.</p>

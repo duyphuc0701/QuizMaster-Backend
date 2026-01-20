@@ -1,5 +1,8 @@
 package com.example.quizmaster.service;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,15 +13,22 @@ import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.example.quizmaster.constants.SessionStatus;
+import com.example.quizmaster.dto.AnswerSubmissionDto;
 import com.example.quizmaster.dto.PlayerDto;
+import com.example.quizmaster.dto.QuestionBroadcastDto;
 import com.example.quizmaster.dto.SessionEventDto;
 import com.example.quizmaster.exception.ApiException;
 import com.example.quizmaster.entity.GameSession;
+import com.example.quizmaster.entity.Option;
 import com.example.quizmaster.entity.Player;
+import com.example.quizmaster.entity.PlayerAnswer;
+import com.example.quizmaster.entity.Question;
 import com.example.quizmaster.entity.Quiz;
 import com.example.quizmaster.repository.GameSessionRepository;
 import com.example.quizmaster.repository.PlayerRepository;
 import com.example.quizmaster.repository.QuizRepository;
+import com.example.quizmaster.repository.PlayerAnswerRepository;
+import com.example.quizmaster.repository.OptionRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -28,14 +38,19 @@ public class GameSessionService {
     private final QuizRepository quizRepository;
     private final PlayerRepository playerRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PlayerAnswerRepository playerAnswerRepository;
+    private final OptionRepository optionRepository;
 
     @Autowired
     public GameSessionService(GameSessionRepository sessionRepository, QuizRepository quizRepository,
-            PlayerRepository playerRepository, SimpMessagingTemplate messagingTemplate) {
+            PlayerRepository playerRepository, SimpMessagingTemplate messagingTemplate,
+            PlayerAnswerRepository playerAnswerRepository, OptionRepository optionRepository) {
         this.sessionRepository = sessionRepository;
         this.quizRepository = quizRepository;
         this.playerRepository = playerRepository;
         this.messagingTemplate = messagingTemplate;
+        this.playerAnswerRepository = playerAnswerRepository;
+        this.optionRepository = optionRepository;
     }
 
     @Transactional
@@ -173,6 +188,142 @@ public class GameSessionService {
 
         PlayerDto.PlayerLeftMessage message = new PlayerDto.PlayerLeftMessage(nickname, playerId);
         messagingTemplate.convertAndSend(destination, message);
+    }
+
+    @Transactional
+    public void sendNextQuestion(String sessionId, String userId) {
+        // 1. Fetch Session
+        GameSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found"));
+
+        // 2. Authorization (Host only)
+        if (!session.getHostId().equals(userId)) {
+            throw new AccessDeniedException("Only host can control the game flow");
+        }
+
+        // 3. Get all questions from the Quiz
+        List<Question> questions = session.getQuiz().getQuestions();
+        int currentIndex = session.getCurrentQuestionIndex();
+
+        // 4. Check if we ran out of questions
+        if (currentIndex >= questions.size()) {
+            throw new ApiException("No more questions available. Game should end.", HttpStatus.BAD_REQUEST);
+            // Alternatively, you could auto-call endGameSession() here.
+        }
+
+        // 5. Get the current question
+        Question question = questions.get(currentIndex);
+
+        // 6. Map to Safe DTO (Stripping answers)
+        List<QuestionBroadcastDto.OptionDto> safeOptions = question.getOptions().stream()
+                .map(opt -> new QuestionBroadcastDto.OptionDto(opt.getId(), opt.getText(), opt.getOrderIndex()))
+                .toList();
+
+        QuestionBroadcastDto payload = new QuestionBroadcastDto(
+                "NEXT_QUESTION",
+                question.getId(),
+                question.getText(),
+                question.getTimeLimitSeconds(),
+                currentIndex + 1, // Display number (1-based)
+                questions.size(), // Total questions
+                safeOptions);
+
+        // Record the exact time we started this question
+        session.setCurrentQuestionStartTime(LocalDateTime.now());
+
+        // 7. Broadcast to WebSocket
+        String destination = "/topic/session/" + sessionId + "/players";
+        System.out.println(">>> BROADCASTING NEXT_QUESTION: " + question.getText());
+        messagingTemplate.convertAndSend(destination, payload);
+
+        // 8. Update State: Increment index for the NEXT call
+        session.setCurrentQuestionIndex(currentIndex + 1);
+        sessionRepository.save(session);
+    }
+
+    @Transactional
+    public AnswerSubmissionDto.Response submitAnswer(String sessionId, AnswerSubmissionDto.Request request) {
+        // 1. Validate Session & Player (Standard checks)
+        GameSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found"));
+
+        Player player = playerRepository.findById(request.getPlayerId())
+                .orElseThrow(() -> new EntityNotFoundException("Player not found"));
+
+        // 2. Get Current Question
+        Question currentQuestion = session.getQuiz().getQuestions().get(session.getCurrentQuestionIndex() - 1);
+
+        if (!currentQuestion.getId().equals(request.getQuestionId())) {
+            throw new ApiException("Question mismatch.", HttpStatus.BAD_REQUEST);
+        }
+
+        // 3. Duplicate Check
+        if (playerAnswerRepository.existsByPlayerAndQuestion(player, currentQuestion)) {
+            throw new ApiException("You have already answered this question.", HttpStatus.CONFLICT);
+        }
+
+        // 4. Validate Option
+        Option selectedOption = optionRepository.findById(request.getSelectedOptionId())
+                .orElseThrow(() -> new EntityNotFoundException("Option not found"));
+
+        // 5. Score Calculation Logic (Same as before)
+        LocalDateTime now = LocalDateTime.now();
+        long secondsElapsed = ChronoUnit.SECONDS.between(session.getCurrentQuestionStartTime(), now);
+
+        // Timeout check (Buffer included)
+        if (session.getCurrentQuestionStartTime() != null &&
+                currentQuestion.getTimeLimitSeconds() != null &&
+                secondsElapsed > (currentQuestion.getTimeLimitSeconds() + 2)) {
+            throw new ApiException("Time limit exceeded", HttpStatus.BAD_REQUEST);
+        }
+
+        boolean isCorrect = selectedOption.isCorrect();
+        int score = 0;
+
+        if (isCorrect) {
+            int maxPoints = currentQuestion.getPoints();
+            if (currentQuestion.getTimeLimitSeconds() == null || currentQuestion.getTimeLimitSeconds() == 0) {
+                score = maxPoints;
+            } else {
+                // Formula: Score = Max * (1 - (ResponseTime / TimeLimit) / 2)
+                // This decays from 100% down to 50% as time runs out
+                double decay = ((double) secondsElapsed / currentQuestion.getTimeLimitSeconds()) / 2.0;
+                score = (int) (maxPoints * (1 - decay));
+                // Safety clamp (can't be less than 50% if correct)
+                if (score < maxPoints / 2)
+                    score = maxPoints / 2;
+            }
+        }
+
+        // 6. Save Answer
+        PlayerAnswer answer = new PlayerAnswer();
+        answer.setPlayer(player);
+        answer.setQuestion(currentQuestion);
+        answer.setSelectedOption(selectedOption);
+        answer.setCorrect(isCorrect);
+        answer.setScoreAwarded(score);
+        playerAnswerRepository.save(answer);
+
+        // Update Player Total Score
+        if (score > 0) {
+            player.setScore(player.getScore() + score);
+            playerRepository.save(player);
+        }
+
+        // 7. BROADCAST TO HOST (Using DTO)
+        int totalAnswers = playerAnswerRepository.countByQuestion(currentQuestion);
+
+        AnswerSubmissionDto.HostUpdate hostUpdate = new AnswerSubmissionDto.HostUpdate(
+                "ANSWER_RECEIVED",
+                totalAnswers);
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId + "/host", hostUpdate);
+
+        // 8. RETURN RESPONSE DTO (Using nested Response DTO)
+        return new AnswerSubmissionDto.Response(
+                isCorrect ? "Correct!" : "Incorrect",
+                score,
+                player.getScore(),
+                isCorrect);
     }
 
     private String generateUniquePin() {

@@ -24,6 +24,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/sessions/join").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/sessions/*/players").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/sessions/*/questions/*/answers").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/sessions/*/submit-answer").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/sessions/*/state").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/quizzes", "/api/quizzes/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()

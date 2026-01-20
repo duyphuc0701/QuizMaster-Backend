@@ -31,8 +31,10 @@ public class GameSession {
     @JoinColumn(name = "quiz_id", nullable = false)
     private Quiz quiz;
 
-    // Track progress (Optional, but useful later)
-    private int currentQuestionIndex = 0;
+    @Column(nullable = false)
+    private int currentQuestionIndex = 0; // Starts at 0 (1st question)
+
+    private LocalDateTime currentQuestionStartTime;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -84,6 +86,14 @@ public class GameSession {
 
     public void setCurrentQuestionIndex(int currentQuestionIndex) {
         this.currentQuestionIndex = currentQuestionIndex;
+    }
+
+    public LocalDateTime getCurrentQuestionStartTime() {
+        return currentQuestionStartTime;
+    }
+
+    public void setCurrentQuestionStartTime(LocalDateTime currentQuestionStartTime) {
+        this.currentQuestionStartTime = currentQuestionStartTime;
     }
 
     public LocalDateTime getCreatedAt() {
