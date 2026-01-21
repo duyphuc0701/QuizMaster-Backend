@@ -7,14 +7,15 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.0-green.svg)
 ![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)
 
-## 🌟 Features
+## ✨ Features
 
-* **Real-Time Gameplay:** Instant question broadcasting and answer submission using **WebSockets (STOMP)**.
-* **Secure Authentication:** **OAuth2/OIDC** integration with Keycloak (JWT Role-based access).
-* **Live Lobby System:** Players join via PIN codes; hosts see updates instantly without page refreshes.
-* **Accurate Scoring Engine:** Server-side timestamp validation with "speed-based" score decay (faster answer = more points).
-* **Synchronization:** Handles late joiners and state recovery seamlessly.
-* **Architecture:** Clean separation of Host (Admin) and Player (Public) logic using DTOs and dedicated Controllers.
+- 🔐 **OAuth2 / OpenID Connect Security** with Keycloak and role-based access control  
+- 🧩 **RESTful Quiz Management APIs** for creating, managing, and exploring quizzes and questions  
+- ⚡ **Real-Time Multiplayer Gameplay** using WebSocket (STOMP + SockJS) for live sessions, answers, and leaderboards  
+- 🧠 **Game Session Orchestration** with player join via Game PIN, timers, scoring, and host-controlled flow  
+- 🗄️ **Persistent Storage** powered by PostgreSQL with JPA / Hibernate  
+- 🧪 **Built-in Headless Frontend (HTML/JS)** for rapid manual and visual testing  
+- 📘 **Interactive API Documentation** via Swagger UI  
 
 ---
 
