@@ -14,8 +14,10 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.example.quizmaster.constants.SessionStatus;
 import com.example.quizmaster.dto.AnswerSubmissionDto;
+import com.example.quizmaster.dto.LeaderboardEntryDto;
 import com.example.quizmaster.dto.PlayerDto;
 import com.example.quizmaster.dto.QuestionBroadcastDto;
+import com.example.quizmaster.dto.RevealAnswerDto;
 import com.example.quizmaster.dto.SessionEventDto;
 import com.example.quizmaster.exception.ApiException;
 import com.example.quizmaster.entity.GameSession;
@@ -311,8 +313,9 @@ public class GameSessionService {
         }
 
         // 7. BROADCAST TO HOST (Using DTO)
-        int totalAnswers = playerAnswerRepository.countByQuestion(currentQuestion);
+        int totalAnswers = playerAnswerRepository.countByQuestionAndSession(currentQuestion, sessionId);
 
+        // Broadcast the correct count to the host
         AnswerSubmissionDto.HostUpdate hostUpdate = new AnswerSubmissionDto.HostUpdate(
                 "ANSWER_RECEIVED",
                 totalAnswers);
@@ -324,6 +327,52 @@ public class GameSessionService {
                 score,
                 player.getScore(),
                 isCorrect);
+    }
+
+    @Transactional
+    public void revealAnswer(String sessionId, String userId) {
+        // 1. Validate Session & Host
+        GameSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found"));
+
+        if (!session.getHostId().equals(userId)) {
+            throw new AccessDeniedException("Only host can reveal answers");
+        }
+
+        // 2. Find Correct Option for Current Question
+        // (Remember: index is 1-based in DB/UI, but 0-based in List, and we already
+        // incremented it!)
+        // So currentQuestionIndex is pointing to the NEXT question. We need the
+        // PREVIOUS one (the active one).
+        int activeIndex = session.getCurrentQuestionIndex() - 1;
+        if (activeIndex < 0)
+            throw new ApiException("No active question to reveal", HttpStatus.BAD_REQUEST);
+
+        Question currentQuestion = session.getQuiz().getQuestions().get(activeIndex);
+
+        Long correctOptionId = currentQuestion.getOptions().stream()
+                .filter(Option::isCorrect)
+                .findFirst()
+                .map(Option::getId)
+                .orElseThrow(() -> new IllegalStateException("Question has no correct answer!"));
+
+        // 3. Generate Leaderboard (Top 5)
+        List<LeaderboardEntryDto> leaderboard = playerRepository.findTop5ByGameSessionIdOrderByScoreDesc(sessionId)
+                .stream()
+                .map(p -> new LeaderboardEntryDto(p.getNickname(), p.getScore()))
+                .toList();
+
+        // 4. Broadcast Event
+        RevealAnswerDto payload = new RevealAnswerDto(correctOptionId, leaderboard);
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId + "/players", payload);
+    }
+
+    // Optional: Standard GET endpoint if frontend wants to poll manually
+    public List<LeaderboardEntryDto> getLeaderboard(String sessionId) {
+        return playerRepository.findTop5ByGameSessionIdOrderByScoreDesc(sessionId)
+                .stream()
+                .map(p -> new LeaderboardEntryDto(p.getNickname(), p.getScore()))
+                .toList();
     }
 
     private String generateUniquePin() {

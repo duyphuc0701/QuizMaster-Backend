@@ -55,9 +55,13 @@
 
             <div id="hostOptionGrid" class="option-grid"></div>
 
-            <div class="stats-box">
+            <div id="hostStatsBox" class="stats-box">
                 Answers: <strong id="hostAnswerCount" style="font-size:1.5em;">0</strong> / <span
                     id="hostTotalPlayers">0</span>
+            </div>
+
+            <div id="hostLeaderboard" class="hidden"
+                style="margin: 20px 0; padding: 15px; background: #fff; border-radius: 8px;">
             </div>
 
             <div id="hostControls" class="hidden">
@@ -65,9 +69,15 @@
             </div>
         </div>
         <div id="hostGameOverScreen" class="hidden">
-            <h1>🏁 Game Over!</h1>
-            <p>Thank you for playing.</p>
-            <button onclick="location.reload()">Host New Game</button>
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">🏆 Game Over!</h1>
+            <p>Final Standings:</p>
+
+            <div id="finalLeaderboard"
+                style="margin: 20px auto; max-width: 500px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                Loading results...
+            </div>
+
+            <button onclick="location.reload()" style="margin-top: 20px;">Back to Home</button>
         </div>
 
     </div>

@@ -26,6 +26,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/sessions/*/questions/*/answers").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/sessions/*/submit-answer").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/sessions/*/state").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/sessions/*/leaderboard").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/quizzes", "/api/quizzes/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()

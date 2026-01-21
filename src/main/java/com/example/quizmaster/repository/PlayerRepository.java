@@ -11,4 +11,6 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     boolean existsByGameSessionAndNickname(GameSession session, String nickname);
 
     List<Player> findByGameSessionId(String sessionId);
+
+    List<Player> findTop5ByGameSessionIdOrderByScoreDesc(String sessionId);
 }

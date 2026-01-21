@@ -63,6 +63,20 @@ const GameLogic = {
         if (!response.ok) throw new Error("Failed to load question");
     },
 
+    async revealAnswer(sessionId, token) {
+        const response = await fetch(`${API_BASE}/${sessionId}/reveal-answer`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!response.ok) throw new Error("Failed to reveal answer");
+    },
+
+    async getLeaderboard(sessionId) {
+        const response = await fetch(`${API_BASE}/${sessionId}/leaderboard`);
+        if (!response.ok) throw new Error("Failed to fetch leaderboard");
+        return await response.json();
+    },
+
     // PLAYER: Join a session
     async joinSession(pin, nickname) {
         const response = await fetch(`${API_BASE}/join`, {
